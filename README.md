@@ -18,3 +18,7 @@ Once it is running, you can access it in a browser at [http://localhost:3000](ht
 <hr>
 
 ### Very important update to use jenkins hook
+
+<hr>
+
+### Very important update to use jenkins pipeline automated deployment
