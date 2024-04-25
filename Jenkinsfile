@@ -19,7 +19,7 @@ pipeline {
             }
             steps {
                 script {
-                    app = docker.build("TestFiesta/train-schedule")
+                    app = docker.build("testfiesta/train-schedule")
                     app.inside {
                         sh 'echo $(curl localhost:8080)' // smoke test - checking if docker image works (this sh is inside docker container)
                     }
