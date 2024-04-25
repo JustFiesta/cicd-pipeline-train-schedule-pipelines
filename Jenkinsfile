@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        gradle "5.1"
+        gradle '5.1'
     }
 
     stages {
