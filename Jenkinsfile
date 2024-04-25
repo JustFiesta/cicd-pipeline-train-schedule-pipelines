@@ -13,5 +13,33 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
+        stage('Build Docker Image') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    app = docker.build("TestFiesta/train-schedule")
+                    app.inside {
+                        sh 'echo $(curl localhost:8080)' // smoke test - checking if docker image works (this sh is inside docker container)
+                    }
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    // set registry with jenkins credentials
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                        // reference app var from Build Docker Image stage
+                        app.push("${env.BUILD_NUMBER}") // pushing both number tag and latest on same build
+                        app.push("latest")
+                    }
+                }
+            }
+        }
     }
 }
