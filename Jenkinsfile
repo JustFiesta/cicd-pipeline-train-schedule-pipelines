@@ -1,5 +1,9 @@
 pipeline {
     agent any
+
+    environment {
+        DOCKER_IMAGE_NAME = "testfiesta/train-schedule"
+    }
     tools {
         gradle '7.3'
     }
@@ -15,20 +19,20 @@ pipeline {
         }
         stage('Build Docker Image') {
             when {
-                branch 'master'
+                branch 'canary-deployment'
             }
             steps {
                 script {
-                    app = docker.build("testfiesta/train-schedule")
+                    app = docker.build(DOCKER_IMAGE_NAME)                    
                     app.inside {
-                        sh 'echo $(curl localhost:8080)' // smoke test - checking if docker image works (this sh is inside docker container)
+                        sh 'echo Hello, World!' 
                     }
                 }
             }
         }
         stage('Push Docker Image') {
             when {
-                branch 'master'
+                branch 'canary-deployment'
             }
             steps {
                 script {
@@ -43,7 +47,7 @@ pipeline {
         }
         stage('DeployToProduction') {
             when {
-                branch 'master'
+                branch 'canary-deployment'
             }
             steps {
                 input 'Deploy to Production?'
