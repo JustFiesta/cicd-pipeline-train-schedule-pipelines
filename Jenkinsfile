@@ -1,14 +1,14 @@
 pipeline {
     agent any
     tools {
-        gradle '5.1'
+        gradle '7.3'
     }
 
     stages {
         stage('Build') {
             steps {
                 echo 'Building..'
-                sh 'gradle wrapper --gradle-version=5.1'
+                sh 'gradle wrapper --gradle-version=7.3.2'
                 sh './gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
