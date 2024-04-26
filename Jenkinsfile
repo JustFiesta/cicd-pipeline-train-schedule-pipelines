@@ -1,65 +1,77 @@
 pipeline {
     agent any
-    tools {
-        gradle '5.1'
+    environment {
+        DOCKER_IMAGE_NAME = "testfiesta/train-schedule"
     }
-
     stages {
         stage('Build') {
             steps {
-                echo 'Building..'
-                sh 'gradle wrapper --gradle-version=5.1'
+                echo 'Running build automation'
                 sh './gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
         stage('Build Docker Image') {
             when {
-                branch 'master'
+                branch 'fully-automated-deployment'
             }
             steps {
                 script {
-                    app = docker.build("testfiesta/train-schedule")
+                    app = docker.build(DOCKER_IMAGE_NAME)
                     app.inside {
-                        sh 'echo $(curl localhost:8080)' // smoke test - checking if docker image works (this sh is inside docker container)
+                        sh 'echo Hello, World!'
                     }
                 }
             }
         }
         stage('Push Docker Image') {
             when {
-                branch 'master'
+                branch 'fully-automated-deployment'
             }
             steps {
                 script {
-                    // set registry with jenkins credentials
                     docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                        // reference app var from Build Docker Image stage
-                        app.push("${env.BUILD_NUMBER}") // pushing both number tag and latest on same build
+                        app.push("${env.BUILD_NUMBER}")
                         app.push("latest")
                     }
                 }
             }
         }
+        stage('CanaryDeploy') {
+            when {
+                branch 'fully-automated-deployment'
+            }
+            environment { 
+                CANARY_REPLICAS = 1
+            }
+            steps {
+                kubernetesDeploy(
+                    kubeconfigId: 'kubeconfig',
+                    configs: 'train-schedule-kube-canary.yml',
+                    enableConfigSubstitution: true
+                )
+            }
+        }
         stage('DeployToProduction') {
             when {
-                branch 'master'
+                branch 'fully-automated-deployment'
+            }
+            environment { 
+                CANARY_REPLICAS = 0
             }
             steps {
                 input 'Deploy to Production?'
                 milestone(1)
-                withCredentials([usernamePassword(credentialsId: 'prod', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
-                    script {
-                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker pull testfiesta/train-schedule:${env.BUILD_NUMBER}\""
-                        try {
-                            sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker stop train-schedule\""
-                            sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker rm train-schedule\""
-                        } catch (err) {
-                            echo: 'caught error: $err'
-                        }
-                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker run --restart always --name train-schedule -p 8080:8080 -d testfiesta/train-schedule:${env.BUILD_NUMBER}\""
-                    }
-                }
+                kubernetesDeploy(
+                    kubeconfigId: 'kubeconfig',
+                    configs: 'train-schedule-kube-canary.yml',
+                    enableConfigSubstitution: true
+                )
+                kubernetesDeploy(
+                    kubeconfigId: 'kubeconfig',
+                    configs: 'train-schedule-kube.yml',
+                    enableConfigSubstitution: true
+                )
             }
         }
     }
