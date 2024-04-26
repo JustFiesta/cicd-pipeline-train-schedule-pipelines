@@ -47,7 +47,7 @@ pipeline {
         }
         stage('CanaryDeploy') {
             when {
-                branch 'master'
+                branch 'canary-deployment'
             }
             environment { 
                 CANARY_REPLICAS = 1
@@ -62,7 +62,7 @@ pipeline {
         }
         stage('DeployToProduction') {
             when {
-                branch 'master'
+                branch 'canary-deployment'
             }
             environment { 
                 CANARY_REPLICAS = 0
