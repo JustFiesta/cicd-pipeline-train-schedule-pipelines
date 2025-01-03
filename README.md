@@ -1,4 +1,9 @@
-# cicd-pipeline-train-schedule-pipelines
+# Jenkins excercises on sample project
+
+This repository contains sample project. Main objective here was to try and play with Jenkins setup/configuration/usage.  
+Pipeline is present in Jenkinsfile, setup was manual on AWS.
+
+## cicd-pipeline-train-schedule-pipelines
 
 This is a simple train schedule app written using nodejs. It is intended to be used as a sample application for a series of hands-on learning activities.
 
